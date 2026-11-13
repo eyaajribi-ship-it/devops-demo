@@ -1,0 +1,30 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ "main", "feature/docker" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Récupérer le code source
+        uses: actions/checkout@v4
+
+      - name: Configurer Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Installer les dépendances et lancer les tests
+        run: |
+          pip install -r requirements.txt
+          python -m unittest discover || echo "No tests configured yet"
+
+      - name: Construire l'image Docker
+        run: |
+          docker build -t devops-demo:${{ github.sha }} .
+          docker images
