@@ -1,0 +1,36 @@
+# docker-compose.yml
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_USER: demo
+      DB_PASSWORD: demopass
+    networks:
+      - appnet
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: demo
+      POSTGRES_PASSWORD: demopass
+      POSTGRES_DB: demodb
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U demo"]
+      interval: 5s
+      retries: 5
+    networks:
+      - appnet
+
+volumes:
+  pgdata:
+
+networks:
+  appnet:
