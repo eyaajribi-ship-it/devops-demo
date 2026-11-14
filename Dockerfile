@@ -1,20 +1,21 @@
-# Étape 1 : installer les dépendances
-FROM python:3.12-slim AS builder
+# --- Étape 1 : compiler le front-end React ---
+FROM node:20-alpine AS front
+WORKDIR /front
+COPY frontend/package*.json ./
+RUN npm ci
+COPY frontend/ .
+RUN npm run build
+
+# --- Étape 2 : image finale (API Node + front compilé) ---
+FROM node:20-alpine
+ENV NODE_ENV=production
 WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir --user -r requirements.txt
-
-# Étape 2 : environnement d'exécution
-FROM python:3.12-slim
-WORKDIR /app
-
-RUN useradd -m -u 1000 appuser
-
-COPY --from=builder /root/.local /home/appuser/.local
-COPY app.py .
-
-USER appuser
-ENV PATH=/home/appuser/.local/bin:$PATH
-
+COPY backend/package*.json ./
+RUN npm ci --omit=dev
+COPY backend/ .
+COPY --from=front /front/dist ./public
+USER node
 EXPOSE 3000
-CMD ["python", "app.py"]
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s \
+  CMD node -e "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+CMD ["node", "src/server.js"]

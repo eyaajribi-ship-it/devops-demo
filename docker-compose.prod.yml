@@ -1,0 +1,32 @@
+# Déploiement : utilise l'image publiée par la CI sur GHCR (aucun build).
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: tounestrip
+      POSTGRES_PASSWORD: tounestrip
+      POSTGRES_DB: tounestrip
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tounestrip"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    image: ghcr.io/eyaajribi-ship-it/tounestrip:latest
+    container_name: tounestrip-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgres://tounestrip:tounestrip@db:5432/tounestrip
+      JWT_SECRET: ${JWT_SECRET:-change-me}
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  dbdata:

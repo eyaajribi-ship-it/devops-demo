@@ -1,34 +1,35 @@
-# deploy.py
-from pyinfra.operations import apt, server
+# Déploiement automatisé avec pyinfra :
+#   pyinfra @local deploy.py --sudo
+# Il met à jour l'application TounesTrip avec la dernière image publiée sur GHCR.
+from pyinfra.operations import apt, files, server
 
 # 1. Installer Docker s'il est absent
 apt.packages(
-    name="Installer Docker",
-    packages=["docker.io"],
+    name="Installer Docker et Docker Compose",
+    packages=["docker.io", "docker-compose-v2"],
     update=True,
 )
 
-# 2. Récupérer la dernière image depuis GitHub Container Registry (ghcr.io)
+# 2. Déposer le fichier Compose de production
+files.put(
+    name="Copier docker-compose.prod.yml",
+    src="docker-compose.prod.yml",
+    dest="/opt/tounestrip/docker-compose.prod.yml",
+    create_remote_dir=True,
+)
+
+# 3. Récupérer la dernière image depuis GHCR
 server.shell(
     name="Pull de la dernière image depuis GHCR",
     commands=[
-        "docker pull ghcr.io/eyaajribi-ship-it/devops-demo:latest",
+        "docker compose -f /opt/tounestrip/docker-compose.prod.yml pull app",
     ],
 )
 
-# 3. Arrêter l'ancien conteneur (s'il existe)
+# 4. Redémarrer l'application avec la nouvelle image
 server.shell(
-    name="Arrêter l'ancien conteneur",
+    name="Redémarrer l'application",
     commands=[
-        "docker stop devops-app || true",
-        "docker rm devops-app || true",
-    ],
-)
-
-# 4. Démarrer le nouveau conteneur avec l'image GHCR
-server.shell(
-    name="Démarrer le nouveau conteneur",
-    commands=[
-        "docker run -d --name devops-app -p 3000:3000 --restart unless-stopped ghcr.io/eyaajribi-ship-it/devops-demo:latest"
+        "docker compose -f /opt/tounestrip/docker-compose.prod.yml up -d",
     ],
 )
