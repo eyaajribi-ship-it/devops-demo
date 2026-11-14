@@ -1,4 +1,7 @@
+**/node_modules
+**/dist
+backend/public
 .git
-__pycache__
+.github
 *.md
-.env
+docker-compose*.yml
