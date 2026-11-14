@@ -29,6 +29,6 @@ server.shell(
 server.shell(
     name="Démarrer le nouveau conteneur",
     commands=[
-        "docker run -d --name devops-app -p 3000:3000 ghcr.io/eyaajribi-ship-it/devops-demo:latest"
+        "docker run -d --name devops-app -p 3000:3000 --restart unless-stopped ghcr.io/eyaajribi-ship-it/devops-demo:latest"
     ],
 )
