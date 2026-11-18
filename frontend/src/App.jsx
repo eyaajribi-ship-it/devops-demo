@@ -173,7 +173,8 @@ function Planifier({ token }) {
   const [erreur, setErreur] = useState("");
   const [message, setMessage] = useState("");
   const [chargement, setChargement] = useState(false);
-  const [sauvegarde, setSauvegarde] = useState(false);
+  const [enCours, setEnCours] = useState(false);       // sauvegarde en cours
+  const [sauvegarde, setSauvegarde] = useState(false); // sauvegarde réussie
 
   async function generer(e) {
     e.preventDefault();
@@ -192,13 +193,19 @@ function Planifier({ token }) {
   }
 
   async function sauvegarder() {
+    if (enCours || sauvegarde) return; // empêche le double clic
     setErreur("");
+    setMessage("");
+    setEnCours(true);
     try {
       await api.sauvegarder(token, programme);
       setSauvegarde(true);
       setMessage("Programme sauvegardé dans « Mes programmes ».");
     } catch (err) {
       setErreur(err.message);
+    } finally {
+      setEnCours(false);
+      window.scrollTo({ top: 0, behavior: "smooth" }); // montre le message
     }
   }
 
@@ -221,8 +228,8 @@ function Planifier({ token }) {
               <button className="bouton secondaire" onClick={modifier}>
                 ← Modifier le voyage
               </button>
-              <button className="bouton" onClick={sauvegarder} disabled={sauvegarde}>
-                {sauvegarde ? "Sauvegardé" : "Sauvegarder"}
+              <button className="bouton" onClick={sauvegarder} disabled={enCours || sauvegarde}>
+                {enCours ? "Sauvegarde..." : sauvegarde ? "Sauvegardé ✓" : "Sauvegarder"}
               </button>
             </>
           }
