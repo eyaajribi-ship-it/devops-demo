@@ -61,7 +61,7 @@ input:focus-visible, button:focus-visible { outline: 3px solid var(--ocre); outl
   cursor: pointer;
 }
 .bouton:hover:not(:disabled) { background: var(--bleu-fonce); }
-.bouton:disabled { opacity: .6; cursor: default; }
+.bouton:disabled { opacity: .6; cursor: not-allowed; }
 .bouton.secondaire { background: var(--bleu-clair); color: var(--bleu-fonce); }
 .bouton.danger { background: #fbe9e7; color: var(--erreur); }
 
@@ -76,8 +76,7 @@ input:focus-visible, button:focus-visible { outline: 3px solid var(--ocre); outl
 }
 
 .erreur { color: var(--erreur); font-weight: 600; margin: 0 0 .8rem; }
-.succes { color: var(--succes); font-weight: 600; margin: 0 0 .8rem; }
-
+.succes { background: #e7f6ec; color: var(--succes); border: 1px solid #b7e1c4; border-radius: 8px; padding: .6rem .9rem; font-weight: 600; margin: 0 0 .8rem; }
 /* Connexion */
 .auth-fond {
   flex: 1;
