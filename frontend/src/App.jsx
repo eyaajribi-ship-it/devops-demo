@@ -1,15 +1,30 @@
 import { useEffect, useState } from "react";
 import { api, ecrireSession, lireSession } from "./api.js";
 
-const DESTINATIONS = ["Tunis", "Sidi Bou Saïd", "Hammamet", "Sousse", "Djerba", "Tozeur"];
+const DESTINATIONS = [
+  "Ariana", "Béja", "Ben Arous", "Bizerte", "Gabès", "Gafsa", "Jendouba",
+  "Kairouan", "Kasserine", "Kébili", "Le Kef", "Mahdia", "La Manouba",
+  "Médenine", "Monastir", "Nabeul", "Sfax", "Sidi Bouzid", "Siliana",
+  "Sousse", "Tataouine", "Tozeur", "Tunis", "Zaghouan",
+  "Djerba", "Hammamet", "Sidi Bou Saïd", "Carthage", "Douz", "Tabarka",
+  "Kélibia", "Matmata", "Tamerza",
+].sort((a, b) => a.localeCompare(b, "fr"));
 
 function formaterDate(iso) {
   return new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
 }
 
+function Pied() {
+  return (
+    <footer className="pied">
+      <p className="pied-bas">© 2026 TounesTrip · Ton programme de voyage en Tunisie, jour par jour.</p>
+    </footer>
+  );
+}
+
 function Auth({ onConnecte }) {
   const [mode, setMode] = useState("connexion");
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [form, setForm] = useState({ name: "", email: "", password: "", confirm: "" });
   const [erreur, setErreur] = useState("");
   const [chargement, setChargement] = useState(false);
 
@@ -18,12 +33,16 @@ function Auth({ onConnecte }) {
   async function envoyer(e) {
     e.preventDefault();
     setErreur("");
+    if (mode === "inscription" && form.password !== form.confirm) {
+      setErreur("Les mots de passe ne correspondent pas.");
+      return;
+    }
     setChargement(true);
     try {
       const rep =
         mode === "connexion"
           ? await api.connexion({ email: form.email, password: form.password })
-          : await api.inscription(form);
+          : await api.inscription({ name: form.name, email: form.email, password: form.password });
       onConnecte({ token: rep.token, nom: rep.user.name });
     } catch (err) {
       setErreur(err.message);
@@ -33,19 +52,30 @@ function Auth({ onConnecte }) {
   }
 
   return (
+    <>
+    <header className="entete">
+      <span className="logo">✈ TounesTrip</span>
+    </header>
+    <div className="auth-fond">
     <main className="auth">
       <section className="auth-intro">
         <h1>TounesTrip</h1>
-        <p className="accroche">Ton programme de voyage en Tunisie, jour par jour.</p>
-        <ul className="points">
-          <li>Choisis ta destination, ta durée et ton budget</li>
-          <li>Reçois un programme avec matin, après-midi et soir</li>
-          <li>Sauvegarde-le et retrouve-le quand tu veux</li>
-        </ul>
+        <p className="accroche">Découvre la Tunisie, un jour à la fois.</p>
+        <p className="sous-accroche">
+          Dis-nous où tu vas, combien de temps et ton budget. On s'occupe du reste.
+        </p>
+        <div className="badges">
+          <span>24 gouvernorats</span>
+          <span>1 à 14 jours</span>
+          <span>Matin · Après-midi · Soir</span>
+        </div>
       </section>
 
       <form className="carte auth-form" onSubmit={envoyer}>
         <h2>{mode === "connexion" ? "Connexion" : "Créer un compte"}</h2>
+        <p className="discret form-sous-titre">
+          {mode === "connexion" ? "Content de te revoir." : "Crée ton compte en quelques secondes."}
+        </p>
         {mode === "inscription" && (
           <label>
             Nom
@@ -60,6 +90,12 @@ function Auth({ onConnecte }) {
           Mot de passe
           <input type="password" value={form.password} onChange={changer("password")} required minLength={6} />
         </label>
+        {mode === "inscription" && (
+          <label>
+            Confirmer le mot de passe
+            <input type="password" value={form.confirm} onChange={changer("confirm")} required minLength={6} />
+          </label>
+        )}
         {erreur && <p className="erreur" role="alert">{erreur}</p>}
         <button className="bouton" disabled={chargement}>
           {chargement ? "Un instant..." : mode === "connexion" ? "Se connecter" : "S'inscrire"}
@@ -76,6 +112,9 @@ function Auth({ onConnecte }) {
         </button>
       </form>
     </main>
+    </div>
+    <Pied />
+    </>
   );
 }
 
@@ -129,6 +168,7 @@ function Programme({ programme, actions }) {
 
 function Planifier({ token }) {
   const [form, setForm] = useState({ destination: "Tunis", days: 3, budget: 600 });
+  const [etape, setEtape] = useState("saisie"); // "saisie" ou "programme"
   const [programme, setProgramme] = useState(null);
   const [erreur, setErreur] = useState("");
   const [message, setMessage] = useState("");
@@ -143,6 +183,7 @@ function Planifier({ token }) {
     setChargement(true);
     try {
       setProgramme(await api.generer(token, form));
+      setEtape("programme");
     } catch (err) {
       setErreur(err.message);
     } finally {
@@ -161,23 +202,57 @@ function Planifier({ token }) {
     }
   }
 
+  function modifier() {
+    setErreur("");
+    setMessage("");
+    setEtape("saisie");
+  }
+
+  // Page 3 : le programme
+  if (etape === "programme" && programme) {
+    return (
+      <div className="planifier">
+        {message && <p className="succes" role="status">{message}</p>}
+        {erreur && <p className="erreur" role="alert">{erreur}</p>}
+        <Programme
+          programme={programme}
+          actions={
+            <>
+              <button className="bouton secondaire" onClick={modifier}>
+                ← Modifier le voyage
+              </button>
+              <button className="bouton" onClick={sauvegarder} disabled={sauvegarde}>
+                {sauvegarde ? "Sauvegardé" : "Sauvegarder"}
+              </button>
+            </>
+          }
+        />
+      </div>
+    );
+  }
+
+  // Page 2 : lieu, durée, budget
   return (
     <div className="planifier">
+      <section className="bandeau">
+        <h1>Où pars-tu ?</h1>
+      </section>
       <form className="carte formulaire" onSubmit={generer}>
         <h2>Nouveau voyage</h2>
+        <p className="discret etape-aide">Choisis ta destination, ta durée et ton budget.</p>
         <label>
           Destination
-          <input
-            list="destinations"
+          <select
             value={form.destination}
             onChange={(e) => setForm({ ...form, destination: e.target.value })}
             required
-          />
-          <datalist id="destinations">
+          >
             {DESTINATIONS.map((d) => (
-              <option key={d} value={d} />
+              <option key={d} value={d}>
+                {d}
+              </option>
             ))}
-          </datalist>
+          </select>
         </label>
         <label>
           Durée (jours)
@@ -205,28 +280,6 @@ function Planifier({ token }) {
           {chargement ? "Génération..." : "Générer mon programme"}
         </button>
       </form>
-
-      <div className="resultat">
-        {!programme && (
-          <div className="vide">
-            <p>Ton programme apparaîtra ici.</p>
-            <p className="discret">Renseigne ta destination, ta durée et ton budget.</p>
-          </div>
-        )}
-        {programme && (
-          <>
-            {message && <p className="succes" role="status">{message}</p>}
-            <Programme
-              programme={programme}
-              actions={
-                <button className="bouton" onClick={sauvegarder} disabled={sauvegarde}>
-                  {sauvegarde ? "Sauvegardé" : "Sauvegarder"}
-                </button>
-              }
-            />
-          </>
-        )}
-      </div>
     </div>
   );
 }
@@ -325,7 +378,7 @@ export default function App() {
   return (
     <>
       <header className="entete">
-        <span className="logo">TounesTrip</span>
+        <span className="logo">✈ TounesTrip</span>
         <nav>
           <button className={onglet === "planifier" ? "onglet actif" : "onglet"} onClick={() => setOnglet("planifier")}>
             Planifier
@@ -342,6 +395,7 @@ export default function App() {
       <main className="page">
         {onglet === "planifier" ? <Planifier token={session.token} /> : <MesProgrammes token={session.token} />}
       </main>
+      <Pied />
     </>
   );
 }
